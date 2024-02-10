@@ -3,6 +3,11 @@
 The plan is to use the sentence transformers to create embeddings that we can later look up with the annoy nearest neighbor search to find relevant files.
 We might need to implement some sort of caching embeddings with maybe sqlite later to speed up startup.  
 
+# Usage
+Usage: 
+source venv/bin/activate
+python3 main.py build (notes-dir)
+python3 main.py search "(query string)"
 
 # Useful references
 [Annoy usage](https://github.com/spotify/annoy)

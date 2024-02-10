@@ -1,8 +1,11 @@
 from annoy import AnnoyIndex
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer, util, CrossEncoder
 import os
 import logging
 import sys
+import pickle
+
+annoyDisType = 'dot'
 
 # gets the files of in a directory
 def get_filepaths(directory):
@@ -20,24 +23,30 @@ def get_filepaths(directory):
 # create embeddings
 def make_embeddings(model, filepaths):
     paths = []
+    passages = []
     embeddings = []
     for filepath in filepaths:
         try:
             content = open(filepath, 'r').read()
-            print(content)
+            # print(content)
         except:
             logging.error("can't open " + filepath)
             continue
-        embedding = model.encode(content)
-        paths.append(filepath)
-        embeddings.append(embedding) 
-    return (paths, embeddings)
+        chunk_size = model.max_seq_length * 2
+        for start in range(0, max(1, len(content) - chunk_size), int(chunk_size / 2)):
+            # model will truncate automatically
+            embedding = model.encode(content[start:]) # i hope python is smart and content[start:] does not copy string from start to end
+            # paths.append(filepath)
+            paths.append(filepath)
+            passages.append(content[start : start + chunk_size])
+            embeddings.append(embedding)
+    return (paths, passages, embeddings)
 
 # create and write annoy file
 # annfilepath is the filepath to save to
 def create_ann(embeddings, annfilepath):
     dim = len(embeddings[0])
-    t = AnnoyIndex(dim, 'angular')
+    t = AnnoyIndex(dim, annoyDisType)
     for idx, embedding in enumerate(embeddings):
         t.add_item(idx, embedding)
     t.build(100)
@@ -48,37 +57,49 @@ def create_ann(embeddings, annfilepath):
 def query(query, model, annfilepath):
     query_embedding = model.encode(query)
     dim = len(query_embedding)
-    u = AnnoyIndex(dim, 'angular')
+    u = AnnoyIndex(dim, annoyDisType)
     u.load(annfilepath)
     return u.get_nns_by_vector(query_embedding, 10)
 
 
+def rank(query, matches, passages, cross_encoder_model):
+    model_inputs = [[query, passages[id]] for id in matches]
+    scores = cross_encoder_model.predict(model_inputs)
+    return sorted(zip(scores, matches), reverse=True)
+
 if __name__ == "__main__":
-    notes_dir = sys.argv[1]
-
     logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
+
+    if(len(sys.argv) != 3):
+        print("Usage: python3 main.py build (notes-dir), python3 main.py search \"(query string)\"")
+        sys.exit(1)
+
+    pathsfilepath = "./paths"
+    passagesfilepath = "./passages"
+    annfilepath = "./data.ann"
+    embedding_model = SentenceTransformer("msmarco-distilbert-base-tas-b")
+    cross_encoder_model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L-2")
     
-    model = SentenceTransformer("msmarco-distilroberta-base-v3")
-
-    (paths, embeddings) = make_embeddings(model, notes_dir)
-
-    query_embedding = model.encode("How big is London")
-    passage_embedding = model.encode("London has 9,787,426 inhabitants at the 2011 census")
-
-    print("Similarity:", util.cos_sim(query_embedding, passage_embedding))
-
-    f = 40  # Length of item vector that will be indexed
-
-    t = AnnoyIndex(f, 'angular')
-    for i in range(1000):
-        v = [random.gauss(0, 1) for z in range(f)]
-        t.add_item(i, v)
-
-    t.build(10) # 10 trees
-    t.save('test.ann')
-
-    # ...
-
-    u = AnnoyIndex(f, 'angular')
-    u.load('test.ann') # super fast, will just mmap the file
-    print(u.get_nns_by_item(0, 1000)) # will find the 1000 nearest neighbors
+    option = sys.argv[1]
+    if option == "build":
+            notes_dir = sys.argv[2]
+            filepaths = get_filepaths(notes_dir)
+            (paths, passages, embeddings) = make_embeddings(embedding_model, filepaths)
+            pickle.dump(paths, open(pathsfilepath, 'wb'))
+            print("paths file successfully pickle dumped at", pathsfilepath)
+            pickle.dump(passages, open(passagesfilepath, 'wb'))
+            print("passages file successfully pickle dumped at", passagesfilepath)
+            create_ann(embeddings, annfilepath)
+            print("ann file successfully built at", annfilepath)
+    elif option == "search":
+            query_string = sys.argv[2]
+            query_ans = query(query_string, embedding_model, annfilepath)
+            paths = pickle.load(open(pathsfilepath, 'rb'))
+            passages = pickle.load(open(passagesfilepath, 'rb'))
+            answers = rank(query_string, query_ans, passages, cross_encoder_model)
+            for (score, id) in answers:
+                print(paths[id], "has score: ", score)
+                print(passages[id][:200])
+                print("-------------\n")
+    else: 
+        print("Option", option, "not found")
