@@ -1,5 +1,7 @@
 .idea/*
+*.swp
 venv*
+.venv*
 .vscode*
 __pycache__*
 test.ipynb

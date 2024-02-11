@@ -28,7 +28,6 @@ def make_embeddings(model, filepaths):
     passages = []
     embeddings = []
     for filepath in tqdm(filepaths):
-    # for filepath in filepaths:
         try:
             content = open(filepath, 'r').read()
             # print(content)
@@ -43,6 +42,7 @@ def make_embeddings(model, filepaths):
             paths.append(filepath)
             passages.append(content[start : start + chunk_size])
             embeddings.append(embedding)
+        # print_progress_part("Embedding", (idx + 1) / len(filepaths))
     return (paths, passages, embeddings)
 
 # create and write annoy file
@@ -63,7 +63,6 @@ def query(query, model, annfilepath):
     u = AnnoyIndex(dim, annoyDisType)
     u.load(annfilepath)
     return u.get_nns_by_vector(query_embedding, 10)
-
 
 def rank(query, matches, passages, cross_encoder_model):
     model_inputs = [[query, passages[id]] for id in matches]
@@ -102,7 +101,7 @@ if __name__ == "__main__":
             answers = rank(query_string, query_ans, passages, cross_encoder_model)
             for (score, id) in answers:
                 print(paths[id], "has score: ", score)
-                print(passages[id][:200])
+                print(passages[id])
                 print("-------------\n")
     else: 
         print("Option", option, "not found")
