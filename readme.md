@@ -5,11 +5,17 @@ We might need to implement some sort of caching embeddings with maybe sqlite lat
 
 # Usage
 Usage: 
-source venv/bin/activate
-python3 main.py build (notes-dir)
-python3 main.py search "(query string)"
+```source venv/bin/activate```
+
+First create the embeddings for the notes and the annoy tree with the following:
+```python3 main.py build (notes-dir)```
+
+Do semantic search on the notes with the following:
+```python3 main.py search "(query string)"```
 
 # Useful references
 [Annoy usage](https://github.com/spotify/annoy)
+
 [Sentence transformer usage](https://www.sbert.net/docs/pretrained-models/msmarco-v3.html)
-[Additional filtering we can implement](https://www.sbert.net/examples/applications/retrieve_rerank/README.html)
+
+[ReRanking](https://www.sbert.net/examples/applications/retrieve_rerank/README.html)

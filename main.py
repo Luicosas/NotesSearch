@@ -4,6 +4,8 @@ import os
 import logging
 import sys
 import pickle
+from tqdm import tqdm
+
 
 annoyDisType = 'dot'
 
@@ -25,7 +27,8 @@ def make_embeddings(model, filepaths):
     paths = []
     passages = []
     embeddings = []
-    for filepath in filepaths:
+    for filepath in tqdm(filepaths):
+    # for filepath in filepaths:
         try:
             content = open(filepath, 'r').read()
             # print(content)
