@@ -72,13 +72,17 @@ def rank(query, matches, passages, cross_encoder_model):
 if __name__ == "__main__":
     logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
 
-    if(len(sys.argv) != 3):
-        print("Usage: python3 main.py build (notes-dir), python3 main.py search \"(query string)\"")
+    if(len(sys.argv) != 4):
+        print("Usage: python3 main.py build (notes-dir) (data dir name), python3 main.py search \"(query string)\" (data dir name)")
         sys.exit(1)
 
-    pathsfilepath = "./paths"
-    passagesfilepath = "./passages"
-    annfilepath = "./data.ann"
+    datadirname = os.path.join("./data", sys.argv[3])
+    if not os.path.exists(datadirname):
+        os.makedirs(datadirname)
+
+    pathsfilepath = os.path.join(datadirname, "paths")
+    passagesfilepath = os.path.join(datadirname, "passages")
+    annfilepath = os.path.join(datadirname, "data.ann")
     embedding_model = SentenceTransformer("msmarco-distilbert-base-tas-b")
     cross_encoder_model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L-2")
     
@@ -99,9 +103,10 @@ if __name__ == "__main__":
             paths = pickle.load(open(pathsfilepath, 'rb'))
             passages = pickle.load(open(passagesfilepath, 'rb'))
             answers = rank(query_string, query_ans, passages, cross_encoder_model)
-            for (score, id) in answers:
-                print(paths[id], "has score: ", score)
-                print(passages[id])
-                print("-------------\n")
+            for (idx, (score, id)) in enumerate(answers):
+                if (idx < 3): 
+                    print(paths[id], "has score: ", score)
+                    print(passages[id])
+                    print("-------------\n")
     else: 
         print("Option", option, "not found")

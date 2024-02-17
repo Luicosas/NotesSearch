@@ -8,10 +8,12 @@ Usage:
 ```source venv/bin/activate```
 
 First create the embeddings for the notes and the annoy tree with the following:
-```python3 main.py build (notes-dir)```
+```python3 main.py build (notes-dir) (data directory name)```
+ex. python3 main.py build ~/Notes notes
 
 Do semantic search on the notes with the following:
-```python3 main.py search "(query string)"```
+```python3 main.py search "(query string) (data directory name)"```
+ex. python3 main.py search "ssh" notes
 
 # Useful references
 [Annoy usage](https://github.com/spotify/annoy)
