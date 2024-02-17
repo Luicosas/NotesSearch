@@ -83,8 +83,18 @@ if __name__ == "__main__":
     pathsfilepath = os.path.join(datadirname, "paths")
     passagesfilepath = os.path.join(datadirname, "passages")
     annfilepath = os.path.join(datadirname, "data.ann")
-    embedding_model = SentenceTransformer("msmarco-distilbert-base-tas-b")
-    cross_encoder_model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L-2")
+
+    embedding_model_path = "./models/msmarco-distilbert-base-tas-b"
+    if os.path.exists(embedding_model_path):
+        embedding_model = SentenceTransformer("./models/msmarco-distilbert-base-tas-b")
+    else: 
+        embedding_model = SentenceTransformer("msmarco-distilbert-base-tas-b")
+
+    encoder_model_path = "./models/ms-marco-TinyBERT-L-2"
+    if os.path.exists(encoder_model_path):
+        cross_encoder_model = CrossEncoder(encoder_model_path)
+    else:
+        cross_encoder_model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L-2")
     
     option = sys.argv[1]
     if option == "build":
